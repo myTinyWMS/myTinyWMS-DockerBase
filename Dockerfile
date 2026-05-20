@@ -3,6 +3,14 @@ FROM library/php:7.3-fpm
 RUN set -e -x \
     && apt-get update \
     && apt-get -y upgrade ca-certificates \
+    && apt-get install -y --no-install-recommends gnupg \
+    && mkdir -p /etc/apt/keyrings \
+    && curl -fsSL https://nginx.org/keys/nginx_signing.key \
+        | gpg --dearmor -o /etc/apt/keyrings/nginx-archive-keyring.gpg \
+    && . /etc/os-release \
+    && echo "deb [signed-by=/etc/apt/keyrings/nginx-archive-keyring.gpg] http://nginx.org/packages/debian ${VERSION_CODENAME} nginx" \
+        > /etc/apt/sources.list.d/nginx.list \
+    && apt-get update \
     && apt-get install -y \
         apt-transport-https \
         nginx \
@@ -18,7 +26,7 @@ RUN set -e -x \
     && docker-php-ext-configure imap --with-kerberos --with-imap-ssl \
     && docker-php-ext-install -j$(nproc) zip intl bcmath imap iconv \
     && docker-php-ext-install pdo pdo_mysql \
-    && docker-php-ext-configure ldap --with-libdir=lib/x86_64-linux-gnu/ \
+    && docker-php-ext-configure ldap --with-libdir="lib/$(dpkg-architecture -qDEB_BUILD_MULTIARCH)" \
     && docker-php-ext-install ldap \
     && docker-php-ext-configure gd \
             --with-freetype-dir=/usr/include/freetype2 \
@@ -27,23 +35,20 @@ RUN set -e -x \
     && docker-php-ext-install gd pcntl \
     && docker-php-ext-install mbstring \
     && docker-php-ext-enable opcache gd \
-    && pecl install redis \
+    && pecl install redis-5.3.7 \
     && docker-php-ext-enable redis \
     && sed -i '/^#.* de_DE.* /s/^#//' /etc/locale.gen \
     && locale-gen
 
 # Install wkhtmltopdf
 RUN set -e -x \
-	&& wget "https://github.com/wkhtmltopdf/packaging/releases/download/0.12.6-1/wkhtmltox_0.12.6-1.stretch_amd64.deb" -q -O /tmp/wkhtmltox_0.12.6-1.stretch_amd64.deb \
-	&& apt install -y /tmp/wkhtmltox_0.12.6-1.stretch_amd64.deb \
-	&& rm -rf /tmp/wkhtmltox_0.12.6-1.stretch_amd64.deb
+	&& apt-get update \
+	&& apt-get install -y wkhtmltopdf
 
 # Install nodejs and npm
 RUN set -e -x \
-    && curl -sL https://deb.nodesource.com/setup_14.x | bash - \
-	&& apt-get update && apt install -y nodejs \
-	&& apt-get install -y --allow-unauthenticated nodejs \
-	&& npm update -g npm
+    && apt-get update \
+	&& apt-get install -y nodejs npm
 
 # Install composer
 RUN set -ex \
