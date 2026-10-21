@@ -35,12 +35,27 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      # Sury's Trixie ARM64 packages are still 7.4.33-30 (2026-10-21).
+      # Restore ARM64 only after patched packages >= 1:7.4.33-31 are available
+      # and tests/smoke.sh passes on ARM64. Never lower the security minimum.
+      - name: Build image for smoke tests
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          push: false
+          platforms: linux/amd64
+          tags: mytinywms-base:ci
+
+      - name: Test image before publishing
+        run: docker run --rm --platform linux/amd64 -i mytinywms-base:ci sh < tests/smoke.sh
+
       - name: Build and push version tag
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: mytinywms/mytinywms-base:${{ github.event.inputs.version }}
 
       - name: Build and push latest tag
@@ -49,5 +64,5 @@ jobs:
         with:
           context: .
           push: true
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           tags: mytinywms/mytinywms-base:latest

@@ -71,5 +71,11 @@ wkhtmltopdf uses the upstream 0.12.6.1-3 Bookworm package with patched Qt.
 The image installs its dependencies through Trixie's APT and the smoke test
 verifies PDF rendering on Trixie. wkhtmltopdf itself is a legacy component.
 
-The Dockerfile allows amd64 and arm64 wkhtmltopdf packages. Local build and
-runtime validation target **linux/amd64**, matching the original image.
+Publishing and runtime validation currently target **linux/amd64**. On
+2026-10-21 Sury's Trixie ARM64 index still provided PHP 7.4.33-30, which lacks
+the required PHP2Shell package revision. The Dockerfile deliberately rejects
+these packages. Restore ARM64 publishing only when CLI, FPM and common
+packages meet the minimum and the full smoke test passes on ARM64.
+
+GitHub Actions builds and smoke-tests the AMD64 image before publishing any
+tag. The optional `latest` tag is also AMD64-only until ARM64 is validated.
